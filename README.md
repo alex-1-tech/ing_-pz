@@ -1,2 +1,2 @@
-# ing_-pz
+# ing_pz
 some tasks for Injinirium 
