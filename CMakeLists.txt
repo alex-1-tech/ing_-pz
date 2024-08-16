@@ -7,4 +7,6 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++ -static-libgcc")
 add_executable(ing_pz main.cpp
         first_task.h
         first_task.cpp
-        )
+        second_task.h
+        second_task.cpp
+)
