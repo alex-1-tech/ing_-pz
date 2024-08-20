@@ -1,25 +1,94 @@
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QWidget>
-#include <QtWidgets/QGridLayout>
-#include <QtWidgets/QLabel>
+#include "third_task.h"
 
-
-namespace third_task{
-    int solution(int argc, char *argv[]){
+namespace third_task {
+    int solution(int argc, char *argv[]) {
         QApplication app(argc, argv);
+        PhoneBook phoneBook;
+        phoneBook.setWindowTitle("Телефонная книга");
+        phoneBook.resize(400, 300);
+        phoneBook.show();
+        return QApplication::exec();
+    }
 
-        QWidget widget;
-        widget.resize(640, 480);
-        widget.setWindowTitle("Hello, world!!!");
+    PhoneBook::PhoneBook() : QWidget(nullptr) {
+        // qDebug()  <<  QSqlDatabase::drivers();
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("phonebook.db");
+        db.open();
 
-        auto *gridLayout = new QGridLayout(&widget);
+        QSqlQuery query;
+        query.exec("CREATE TABLE "
+                   "IF NOT EXISTS contacts "
+                   "(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT)");
+        auto *layout = new QVBoxLayout(this);
 
-        auto * label = new QLabel("Hello, world!!!");
-        label->setAlignment(Qt::AlignVCenter | Qt::AlignHCenter);
-        gridLayout->addWidget(label);
+        name = new QLineEdit(this);
+        name->setPlaceholderText("Input name: ");
+        layout->addWidget(name);
 
-        widget.show();
+        phone = new QLineEdit(this);
+        phone->setPlaceholderText("Введите телефон");
+        layout->addWidget(phone);
 
-        return app.exec();
+        auto *addButton = new QPushButton("Добавить контакт", this);
+        layout->addWidget(addButton);
+
+        contacts = new QListWidget(this);
+        layout->addWidget(contacts);
+
+        auto *deleteButton = new QPushButton("Удалить контакт", this);
+        layout->addWidget(deleteButton);
+
+        connect(addButton, &QPushButton::clicked, this, &PhoneBook::addContact);
+        connect(deleteButton, &QPushButton::clicked, this, &PhoneBook::deleteContact);
+
+        loadContacts();
+    }
+
+    void PhoneBook::addContact() {
+        QString input_name = name->text();
+        QString input_phone = phone->text();
+
+        if (input_name.isEmpty() || input_phone.isEmpty()) {
+            QMessageBox::warning(this, "Error", "The name and phone number cannot be empty!");
+            return;
+        }
+
+        QSqlQuery query;
+        query.prepare("INSERT INTO contacts (name, phone) VALUES (:name, :phone)");
+        query.bindValue(":name", input_name);
+        query.bindValue(":phone", input_phone);
+        query.exec();
+
+        name->clear();
+        phone->clear();
+        loadContacts();
+    }
+
+    void PhoneBook::deleteContact() {
+        QListWidgetItem *selectedItem = contacts->currentItem();
+        if (selectedItem) {
+            QStringList contactDetails = selectedItem->text().split(" - ");
+            QString input_name = contactDetails[0];
+
+            QSqlQuery query;
+            query.prepare("DELETE FROM contacts WHERE name = :name");
+            query.bindValue(":name", input_name);
+            query.exec();
+
+            loadContacts();
+        } else {
+            QMessageBox::warning(this, "Error", "Select the contact to delete!");
+        }
+    }
+
+    void PhoneBook::loadContacts() {
+        contacts->clear();
+        QSqlQuery query("SELECT name, phone FROM contacts");
+        while (query.next()) {
+            QString input_name = query.value(0).toString();
+            QString input_phone = query.value(1).toString();
+            contacts->addItem(input_name + " - " + input_phone);
+        }
     }
 }
